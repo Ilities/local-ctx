@@ -13,7 +13,7 @@ await esbuild.build({
   minify: process.env.NODE_ENV === 'production',
   // Mark Node.js built-in modules and problematic dependencies as external
   external: [
-    // Node.js built-in modules
+    // Node.js built-in modules (both with and without node: prefix)
     'path',
     'fs',
     'os',
@@ -29,6 +29,22 @@ await esbuild.build({
     'string_decoder',
     'querystring',
     'url',
+    // Node.js built-in modules with node: prefix
+    'node:path',
+    'node:fs',
+    'node:os',
+    'node:util',
+    'node:events',
+    'node:stream',
+    'node:http',
+    'node:https',
+    'node:net',
+    'node:crypto',
+    'node:zlib',
+    'node:buffer',
+    'node:string_decoder',
+    'node:querystring',
+    'node:url',
     // Dependencies that have dynamic requires
     'express',
     'body-parser',

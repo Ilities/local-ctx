@@ -42,17 +42,17 @@ Will expose streamable HTTP `server-memory` MCP server on address `http://localh
 
 ```bash
 # Basic usage with command-line arguments
-npx local-ctx --commands '[{"name":"memory","command":"npx -y @modelcontextprotocol/server-memory"}]' --port 8000
+npx @ilities/local-ctx --commands '[{"name":"memory","command":"npx -y @modelcontextprotocol/server-memory"}]' --port 8000
 
 # Using a configuration file
-npx local-ctx --config ./my-config.json
+npx @ilities/local-ctx --config ./my-config.json
 
 # Using environment variables with custom port
-PORT=9000 COMMANDS='[{"name":"memory","command":"npx -y @modelcontextprotocol/server-memory"}]' npx local-ctx
+PORT=9000 COMMANDS='[{"name":"memory","command":"npx -y @modelcontextprotocol/server-memory"}]' npx @ilities/local-ctx
 
 # Using default config.json in current directory
 # (Place a config.json in your current directory and run)
-npx local-ctx
+npx @ilities/local-ctx
 ```
 
 ### Using node 
