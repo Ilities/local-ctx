@@ -23,21 +23,6 @@ If you're managing multiple MCP servers or AI tools across your organization, Ct
 
 ## Usage
 
-Local Ctx supports running multiple local MCP servers simultaneously. They are all spun up as standard STDIO servers based on the commands provided. 
-
-They are exposed as Streamable HTTP endpoints **which is generated based on the name given for the command in the configuration**.
-
-For example command:
-```json
-{
-  "name": "memento",
-  "command": "npx -y @modelcontextprotocol/server-memory"
-}
-```
-
-Will expose streamable HTTP `server-memory` MCP server on address `http://localhost:8000/memento`.
-
-
 ### Using npx (Recommended)
 
 ```bash
@@ -81,6 +66,21 @@ node dist/index.js
 ```
 
 ## Configuration Methods
+
+Local Ctx supports running multiple local MCP servers simultaneously. They are all spun up as standard STDIO servers based on the commands provided.
+
+They are exposed as Streamable HTTP endpoints **which is generated based on the name given for the command in the configuration**.
+
+For example command:
+```json
+{
+  "name": "memento",
+  "command": "npx -y @modelcontextprotocol/server-memory"
+}
+```
+
+Will expose streamable HTTP `server-memory` MCP server on address `http://localhost:8000/memento`.
+
 
 Configuration is loaded in the following order of precedence (highest to lowest):
 
