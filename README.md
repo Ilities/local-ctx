@@ -23,13 +23,9 @@ npx @ilities/local-ctx --config ./my-config.json
 
 # Using environment variables with custom port
 PORT=9000 COMMANDS='[{"name":"memory","command":"npx -y @modelcontextprotocol/server-memory"}]' npx @ilities/local-ctx
-
-# Using default config.json in current directory
-# (Place a config.json in your current directory and run)
-npx @ilities/local-ctx
 ```
 
-### Using node 
+### Dev mode/Using node 
 
 ```bash
 git clone https://github.com/Ilities/local-ctx.git
