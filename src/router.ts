@@ -74,7 +74,7 @@ export class LocalContextServer {
         .options(this.oAuthController.getAuthorizationServerHandler());
     } else {
       this.logger.warn(
-        'OAuth is not configured. Exposed endpoints will not be insecure. Please configure OAuth to enable OAuth support.'
+        'OAuth is not configured. Exposed endpoints will be insecure. Please configure OAuth to enable OAuth support.'
       );
     }
 
