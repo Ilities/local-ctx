@@ -140,12 +140,15 @@ async function main() {
         {
           commands: [
             {
-              name: 'echo',
-              command: 'echo "Hello World"',
+              name: 'memento',
+              command: 'npx -y @modelcontextprotocol/server-memory',
             },
           ],
           port: 8000,
-          corsOrigin: '*',
+          oauth: {
+            authorizationServerUrl: 'https://your-auth-server.example.com',
+            jwksPath: '/optional-jwks-path',
+          },
         },
         null,
         2

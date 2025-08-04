@@ -53,6 +53,9 @@ await esbuild.build({
     'yargs',
     'jose',
     '@modelcontextprotocol/sdk',
+    // Add pino and its dependencies
+    'pino',
+    'pino-pretty',
   ],
 });
 
