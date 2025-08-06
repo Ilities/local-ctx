@@ -150,11 +150,22 @@ You can expose the created MCP server now externally using tunneling tools. It i
 
 ### ngrok
 
-The easiest way to get started is to use ngrok.
+Ngrok provides tunneling services that you can use to expose your server to the internet
 
-1. Log in/Sign up to ngrok
+1. Log in/Sign up to [ngrok](https://ngrok.com/)
 2. Install the ngrok binary as stated in their documentation `https://dashboard.ngrok.com/get-started/setup/linux`
 3. Run the tunnel `ngrok http http://localhost:8000`
+4. Register the server to your LLM Client with the URL `ngrok` gave you + the path of the tool.
+
+### Pinggy
+
+Pinggy is a tunneling service that provides simple localhost tunnels to bring your local projects online without a need to install a client.
+
+
+1. Navigate to https://pinggy.io/
+2. (Optional) Sign up/login
+3. Run the command to establish a tunnel connection `ssh -p 443 -R0:localhost:8000 qr@free.pinggy.io`
+4. Register the server to your LLM Client with the URL `Pinggy` gave you + the path of the tool.
 
 
 ## Configuring with AI Clients

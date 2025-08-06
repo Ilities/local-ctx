@@ -1,6 +1,6 @@
 {
   "name": "@ilities/local-ctx",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "An MCP utility to enable local servers to be exposed to standard clients with OAuth",
   "type": "module",
   "bin": {
