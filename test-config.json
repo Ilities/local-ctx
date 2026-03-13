@@ -1,0 +1,9 @@
+{
+  "commands": [
+    {
+      "name": "test",
+      "command": "echo test"
+    }
+  ],
+  "port": 8001
+}
