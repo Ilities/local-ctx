@@ -1,8 +1,8 @@
-import * as esbuild from 'esbuild';
+import { build } from 'esbuild';
 
 const entryPoints = ['./src/index.ts'];
 
-await esbuild.build({
+await build({
   entryPoints,
   bundle: true,
   outdir: 'dist',
