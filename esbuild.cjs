@@ -1,8 +1,8 @@
-import * as esbuild from 'esbuild';
+const esbuild = require('esbuild');
 
 const entryPoints = ['./src/index.ts'];
 
-await esbuild.build({
+esbuild.build({
   entryPoints,
   bundle: true,
   outdir: 'dist',
@@ -57,6 +57,9 @@ await esbuild.build({
     'pino',
     'pino-pretty',
   ],
+}).catch((err) => {
+  console.error('Build failed:', err);
+  process.exit(1);
 });
 
 console.log('Build completed successfully!');
