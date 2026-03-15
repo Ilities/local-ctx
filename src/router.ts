@@ -1,4 +1,4 @@
-import express from 'express';
+import * as express from 'express';
 import { createRootLogger, passThroughMiddleware } from './util';
 import { Logger } from 'pino';
 import { LocalServerRegistry } from './service/LocalServerRegistry';
@@ -52,7 +52,7 @@ export class LocalContextServer {
   }
 
   private configureMiddleware(): void {
-    this.app.use((_req, res, next) => {
+    this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
       res.header('Access-Control-Allow-Origin', '*');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
       next();
@@ -86,10 +86,10 @@ export class LocalContextServer {
           this.oAuthController
             ? this.oAuthService.getJwtBearerTokenMiddleware()
             : passThroughMiddleware,
-          (req, res) => controller.handleMCPRequest(req, res)
+          (req: express.Request, res: express.Response) => controller.handleMCPRequest(req, res)
         )
-        .get(`/${name}`, (req, res) => controller.handleUnsupportedMethod(req, res))
-        .delete(`/${name}`, (req, res) => controller.handleUnsupportedMethod(req, res));
+        .get(`/${name}`, (req: express.Request, res: express.Response) => controller.handleUnsupportedMethod(req, res))
+        .delete(`/${name}`, (req: express.Request, res: express.Response) => controller.handleUnsupportedMethod(req, res));
       this.logger.info(`Configured routes for command at path: ${name}`);
     }
   }

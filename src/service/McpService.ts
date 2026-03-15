@@ -28,7 +28,7 @@
  */
 
 import { Request, Response } from 'express';
-import { ChildProcess, spawn } from 'child_process';
+import { ChildProcess, spawn } from 'node:child_process';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
@@ -53,7 +53,7 @@ export class DefaultMcpService implements McpService {
     );
 
     const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
+      sessionIdGenerator: () => Math.random().toString(36).substring(2, 15),
     });
 
     await server.connect(transport);
@@ -68,7 +68,7 @@ export class DefaultMcpService implements McpService {
   private spawnChildProcess(transport: StreamableHTTPServerTransport): ChildProcess {
     const child = spawn(this.stdioCmd, { shell: true });
 
-    child.on('exit', (code, signal) => {
+    child.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
       this.logger.error(`Child exited: code=${code}, signal=${signal}`);
       transport.close();
     });
@@ -82,7 +82,7 @@ export class DefaultMcpService implements McpService {
   ): void {
     let buffer = '';
 
-    child.stdout?.on('data', (chunk: Buffer) => {
+    child.stdout?.on('data', (chunk: Buffer | string) => {
       buffer += chunk.toString('utf8');
       const lines = buffer.split(/\r?\n/);
       buffer = lines.pop() ?? '';
@@ -91,11 +91,11 @@ export class DefaultMcpService implements McpService {
         if (!line.trim()) return;
         try {
           const jsonMsg = JSON.parse(line);
-          this.logger.info('Child → StreamableHttp:', line);
+          this.logger.info({ message: line }, 'Child → StreamableHttp');
           try {
             transport.send(jsonMsg);
           } catch (e) {
-            this.logger.error(`Failed to send to StreamableHttp`, e);
+            this.logger.error(e, 'Failed to send to StreamableHttp');
           }
         } catch {
           this.logger.error(`Child non-JSON: ${line}`);
@@ -103,7 +103,7 @@ export class DefaultMcpService implements McpService {
       });
     });
 
-    child.stderr?.on('data', (chunk: Buffer) => {
+    child.stderr?.on('data', (chunk: Buffer | string) => {
       this.logger.error(`Child stderr: ${chunk.toString('utf8')}`);
     });
   }
@@ -123,7 +123,7 @@ export class DefaultMcpService implements McpService {
     };
 
     transport.onerror = err => {
-      this.logger.error(`StreamableHttp error:`, err);
+      this.logger.error(err, 'StreamableHttp error');
       child.kill();
     };
   }
