@@ -91,11 +91,11 @@ export class DefaultMcpService implements McpService {
         if (!line.trim()) return;
         try {
           const jsonMsg = JSON.parse(line);
-          this.logger.info('Child → StreamableHttp:', line);
+          this.logger.info({ line }, 'Child → StreamableHttp:');
           try {
             transport.send(jsonMsg);
           } catch (e) {
-            this.logger.error(`Failed to send to StreamableHttp`, e);
+            this.logger.error(e, 'Failed to send to StreamableHttp');
           }
         } catch {
           this.logger.error(`Child non-JSON: ${line}`);
@@ -123,7 +123,7 @@ export class DefaultMcpService implements McpService {
     };
 
     transport.onerror = err => {
-      this.logger.error(`StreamableHttp error:`, err);
+      this.logger.error(err, 'StreamableHttp error:');
       child.kill();
     };
   }
