@@ -1,4 +1,6 @@
-import * as esbuild from 'esbuild';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const esbuild = require('esbuild');
 
 const entryPoints = ['./src/index.ts'];
 
