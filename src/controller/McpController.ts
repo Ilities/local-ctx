@@ -12,7 +12,7 @@ export class McpController {
     try {
       await this.mcpService.processRequest(req, res, req.body);
     } catch (error) {
-      this.logger.error('Error handling MCP request:', error);
+      this.logger.error({ error }, 'Error handling MCP request');
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: '2.0',
