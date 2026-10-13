@@ -121,6 +121,20 @@ When OAuth is configured, the server will automatically:
 - Expose OAuth discovery endpoints at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
 - Require valid JWT bearer tokens for all command endpoints
 
+## Health Check
+
+The server exposes a public, unauthenticated liveness endpoint for uptime monitors:
+
+```bash
+curl http://localhost:8000/health
+```
+
+```json
+{ "status": "ok", "servers": ["memory", "filesystem"] }
+```
+
+`status` is `ok` whenever the server is up, and `servers` lists the MCP servers the gateway is configured to expose. The endpoint stays reachable even when OAuth is enabled.
+
 ## Auth Setup
 
 Currently the utility has been tested with WorkOS. Other implementations are welcome.
