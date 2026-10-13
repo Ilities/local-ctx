@@ -28,4 +28,8 @@ export class LocalServerRegistry {
   public getLocalServers(): Map<string, McpController> {
     return this.children;
   }
+
+  public getServerNames(): string[] {
+    return [...this.children.keys()];
+  }
 }

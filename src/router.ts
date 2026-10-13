@@ -1,8 +1,10 @@
 import express from 'express';
+import * as http from 'node:http';
 import { createRootLogger, passThroughMiddleware } from './util';
 import { Logger } from 'pino';
 import { LocalServerRegistry } from './service/LocalServerRegistry';
 import { OAuthController } from './controller/OAuthController';
+import { HealthController } from './controller/HealthController';
 import { OAuthService } from './service/OAuthService';
 
 export interface CommandConfig {
@@ -28,6 +30,7 @@ export class LocalContextServer {
   private readonly logger: Logger;
   private readonly localServerRegistry: LocalServerRegistry;
   private readonly oAuthController?: OAuthController;
+  private readonly healthController: HealthController;
 
   constructor(
     private config: LocalServerConfig,
@@ -41,6 +44,8 @@ export class LocalContextServer {
     for (const command of this.config.commands) {
       this.localServerRegistry.registerLocalMcp(command);
     }
+
+    this.healthController = new HealthController(this.localServerRegistry);
 
     // Set OAuth configuration for middleware
     if (this.config.oauth) {
@@ -62,6 +67,10 @@ export class LocalContextServer {
   }
 
   private configureRoutes(): void {
+    // Public liveness endpoint. Registered before the OAuth and command routes so
+    // uptime monitors can reach it without a bearer token.
+    this.app.get('/health', this.healthController.getHealthHandler());
+
     if (this.oAuthController) {
       // OAuth endpoints
       this.app
@@ -94,8 +103,8 @@ export class LocalContextServer {
     }
   }
 
-  public start(): void {
-    this.app.listen(this.config.port, () => {
+  public start(): http.Server {
+    return this.app.listen(this.config.port, () => {
       this.logger.info(`Listening on port ${this.config.port}`);
 
       // Log all command endpoints
