@@ -52,6 +52,7 @@ await esbuild.build({
     'dotenv',
     'yargs',
     'jose',
+    'yaml',
     '@modelcontextprotocol/sdk',
     // Add pino and its dependencies
     'pino',
