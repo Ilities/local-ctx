@@ -8,7 +8,7 @@ import { OAuthService } from './service/OAuthService';
 export interface CommandConfig {
   name: string;
   command: string;
-  path: string;
+  path?: string;
 }
 
 export interface OAuthConfig {

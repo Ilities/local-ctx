@@ -8,57 +8,59 @@ import * as path from 'node:path';
 import * as dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { OAuthService } from './service/OAuthService';
+import { ConfigFile, loadConfigFile } from './config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-interface OAuthConfig {
-  authorizationServerUrl: string;
-  jwksPath: string;
+const DEFAULT_CONFIG_FILENAME = 'config.json';
+
+interface ResolvedConfigPath {
+  path: string;
+  // A path supplied explicitly (via --config or CONFIG_PATH) is a hard error if
+  // it cannot be loaded; a discovered default config is only a warning.
+  explicit: boolean;
 }
 
-interface ConfigFile {
-  commands?: CommandConfig[];
-  port?: number;
-  corsOrigin?: string | string[] | boolean;
-  oauth?: OAuthConfig;
+function resolveConfigPath(cliConfigPath?: string): ResolvedConfigPath | undefined {
+  if (cliConfigPath) {
+    return { path: cliConfigPath, explicit: true };
+  }
+
+  const envConfigPath = process.env['CONFIG_PATH'];
+  if (envConfigPath) {
+    return { path: envConfigPath, explicit: true };
+  }
+
+  const defaultConfigPath = path.join(__dirname, DEFAULT_CONFIG_FILENAME);
+  if (fs.existsSync(defaultConfigPath)) {
+    return { path: defaultConfigPath, explicit: false };
+  }
+
+  return undefined;
 }
 
 function loadConfigFromFile(configPath?: string): ConfigFile {
-  let config: ConfigFile = {};
-
-  if (configPath) {
-    // Use provided config file path
-    if (fs.existsSync(configPath)) {
-      try {
-        const configContent = fs.readFileSync(configPath, 'utf8');
-        config = JSON.parse(configContent);
-        console.log(`Loaded configuration from: ${configPath}`);
-      } catch (error) {
-        console.error(`Error loading config file ${configPath}:`, error);
-        process.exit(1);
-      }
-    } else {
-      console.error(`Config file not found: ${configPath}`);
-      process.exit(1);
-    }
-  } else {
-    // Look for config.json next to index file
-    const defaultConfigPath = path.join(__dirname, 'config.json');
-    if (fs.existsSync(defaultConfigPath)) {
-      try {
-        const configContent = fs.readFileSync(defaultConfigPath, 'utf8');
-        config = JSON.parse(configContent);
-        console.log(`Loaded configuration from: ${defaultConfigPath}`);
-      } catch (error) {
-        console.error(`Error loading default config file:`, error);
-      }
-    }
+  const resolved = resolveConfigPath(configPath);
+  if (!resolved) {
+    return {};
   }
 
-  return config;
+  try {
+    const config = loadConfigFile(resolved.path);
+    console.log(`Loaded configuration from: ${resolved.path}`);
+    return config;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (resolved.explicit) {
+      console.error(message);
+      process.exit(1);
+    }
+    console.error(`Error loading default config file: ${message}`);
+    return {};
+  }
 }
 
 function getEnvConfig(): Partial<LocalServerConfig> {
@@ -84,7 +86,7 @@ async function main() {
     .option('config', {
       alias: 'c',
       type: 'string',
-      description: 'Path to JSON configuration file',
+      description: 'Path to JSON or YAML configuration file',
     })
     .option('port', {
       alias: 'p',
@@ -104,6 +106,8 @@ async function main() {
     .parseAsync();
 
   // Load configuration in order of precedence: CLI args > env vars > config file > defaults
+  // The config file path itself comes from --config, then CONFIG_PATH, then a
+  // default config.json next to the entrypoint.
   const fileConfig = loadConfigFromFile(argv.config);
   const envConfig = getEnvConfig();
 
@@ -134,7 +138,7 @@ async function main() {
     console.error(
       'Error: No commands configured. Please provide commands via config file, environment variables, or CLI arguments.'
     );
-    console.log('\nExample config.json:');
+    console.log('\nExample config.json (YAML is also supported):');
     console.log(
       JSON.stringify(
         {
