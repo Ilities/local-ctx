@@ -97,7 +97,9 @@ Specify a path with the `--config` option to a `config.json` file:
   "port": 8000,
   "oauth": {
     "authorizationServerUrl": "https://your-auth-server.example.com",
-    "jwksPath": "/optional-jwks-path"
+    "jwksPath": "/optional-jwks-path",
+    "resourceServerUrl": "https://your-public-host.example.com",
+    "audience": "https://your-public-host.example.com/memory"
   }
 }
 ```
@@ -115,11 +117,15 @@ OAuth can be configured to secure your endpoints:
 
 - `authorizationServerUrl`: URL of the OAuth authorization server
 - `jwksPath`: Optional path to the JWKS endpoint (defaults to standard path which is `/oauth2/jwks`)
+- `resourceServerUrl`: Optional public base URL of this server, including any tunnel hostname (defaults to `http://localhost:<port>`). Each endpoint's resource URL is this base URL plus the endpoint name, for example `https://your-public-host.example.com/memory`.
+- `audience`: Optional JWT audience (`aud`) claim expected in access tokens. By default each endpoint requires a token whose audience is its own resource URL. Set this only if your authorization server issues tokens with a different audience value.
 
 When OAuth is configured, the server will automatically:
 
-- Expose OAuth discovery endpoints at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
+- Expose OAuth protected-resource metadata (RFC 9728) for every endpoint at `/.well-known/oauth-protected-resource/<endpoint>` (for example, `/.well-known/oauth-protected-resource/memory`), plus the root metadata at `/.well-known/oauth-protected-resource` and authorization-server metadata at `/.well-known/oauth-authorization-server`
+- Return a `WWW-Authenticate` header on 401 responses that points clients to the endpoint's protected-resource metadata
 - Require valid JWT bearer tokens for all command endpoints
+- Reject tokens that were issued for a different resource, even if they come from the configured authorization server
 
 ## Auth Setup
 

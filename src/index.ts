@@ -14,16 +14,18 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-interface OAuthConfig {
+interface OAuthFileConfig {
   authorizationServerUrl: string;
-  jwksPath: string;
+  jwksPath?: string;
+  resourceServerUrl?: string;
+  audience?: string;
 }
 
 interface ConfigFile {
   commands?: CommandConfig[];
   port?: number;
   corsOrigin?: string | string[] | boolean;
-  oauth?: OAuthConfig;
+  oauth?: OAuthFileConfig;
 }
 
 function loadConfigFromFile(configPath?: string): ConfigFile {
@@ -125,7 +127,11 @@ async function main() {
       cliCommands.length > 0 ? cliCommands : envConfig.commands || fileConfig.commands || [],
     port: resolvedPort,
     oauth: fileConfig.oauth
-      ? { ...fileConfig.oauth, resourceServerUrl: `http://localhost:${resolvedPort}` }
+      ? {
+          ...fileConfig.oauth,
+          resourceServerUrl:
+            fileConfig.oauth.resourceServerUrl ?? `http://localhost:${resolvedPort}`,
+        }
       : undefined,
   };
 
