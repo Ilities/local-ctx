@@ -79,19 +79,32 @@ export class LocalContextServer {
     }
 
     for (const [name, controller] of this.localServerRegistry.getLocalServers()) {
-      // POST endpoint for MCP requests
+      const authMiddleware = this.oAuthController
+        ? this.oAuthService.getJwtBearerTokenMiddleware(name)
+        : passThroughMiddleware;
+
+      if (this.oAuthController) {
+        // RFC 9728 metadata for this specific MCP endpoint
+        this.app
+          .route(`/.well-known/oauth-protected-resource/${name}`)
+          .get(this.oAuthController.getProtectedResourceHandler(name))
+          .options(this.oAuthController.getProtectedResourceHandler(name));
+      }
+
+      // MCP endpoint; every method requires a valid token for this endpoint when OAuth is on
       this.app
-        .post(
-          `/${name}`,
-          this.oAuthController
-            ? this.oAuthService.getJwtBearerTokenMiddleware()
-            : passThroughMiddleware,
-          (req, res) => controller.handleMCPRequest(req, res)
-        )
-        .get(`/${name}`, (req, res) => controller.handleUnsupportedMethod(req, res))
-        .delete(`/${name}`, (req, res) => controller.handleUnsupportedMethod(req, res));
+        .post(`/${name}`, authMiddleware, (req, res) => controller.handleMCPRequest(req, res))
+        .get(`/${name}`, authMiddleware, (req, res) => controller.handleUnsupportedMethod(req, res))
+        .delete(`/${name}`, authMiddleware, (req, res) =>
+          controller.handleUnsupportedMethod(req, res)
+        );
       this.logger.info(`Configured routes for command at path: ${name}`);
     }
+  }
+
+  /** Express application, exposed so tests can mount it on an ephemeral port. */
+  public getApp(): express.Application {
+    return this.app;
   }
 
   public start(): void {

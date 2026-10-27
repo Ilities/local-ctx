@@ -115,11 +115,25 @@ OAuth can be configured to secure your endpoints:
 
 - `authorizationServerUrl`: URL of the OAuth authorization server
 - `jwksPath`: Optional path to the JWKS endpoint (defaults to standard path which is `/oauth2/jwks`)
+- `resourceServerUrl`: Optional public base URL that clients use to reach this server, e.g. your ngrok or Pinggy URL. Defaults to `http://localhost:<port>`. Each MCP endpoint's resource identifier is `<resourceServerUrl>/<name>`, so this must match the URL you register with your client (no trailing slash needed).
+
+```json
+"oauth": {
+  "authorizationServerUrl": "https://your-auth-server.example.com",
+  "resourceServerUrl": "https://gibberish.ngrok-free.app"
+}
+```
 
 When OAuth is configured, the server will automatically:
 
-- Expose OAuth discovery endpoints at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
-- Require valid JWT bearer tokens for all command endpoints
+- Expose OAuth discovery endpoints at `/.well-known/oauth-authorization-server`
+- Expose [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) protected resource metadata for every command endpoint at `/.well-known/oauth-protected-resource/<name>` (for example `/.well-known/oauth-protected-resource/memory`). The root `/.well-known/oauth-protected-resource` document is still served for backwards compatibility, but clients should use the per-endpoint documents.
+- Require a valid JWT bearer token for every request to a command endpoint (`POST`, `GET` and `DELETE`). Unauthenticated requests get `401` with `WWW-Authenticate: Bearer resource_metadata="<url of that endpoint's metadata>"`, so clients can discover the authorization server.
+- Accept only tokens that were issued for that endpoint. The token must be signed by the configured authorization server (checked against the JWKS), have the matching `iss`, be unexpired, and have an `aud` claim that equals the endpoint's resource identifier (for example `https://gibberish.ngrok-free.app/memory`). Tokens issued for another endpoint, or for another resource on the same authorization server, are rejected with `401` and `error="invalid_token"`.
+
+The authorization server must bind access tokens to the resource the client requested (RFC 8707 resource indicators), so that `aud` is set to the endpoint URL. If your provider issues tokens without an `aud` matching the endpoint, clients will be rejected.
+
+**Upgrade note:** before this change any valid token from the authorization server was accepted. Now the token audience must match the endpoint. If you expose the server through a tunnel, set `resourceServerUrl` to the public URL.
 
 ## Auth Setup
 
@@ -220,6 +234,7 @@ If clients receive 401 Unauthorized errors:
 - Verify the `authorizationServerUrl` is correct and accessible
 - Ensure the OAuth server is running and reachable from both your machine and the tunneling service
 - Check that the client is sending a valid, non-expired JWT token
+- Check that the token's `aud` is the endpoint URL (e.g. `https://your-host/memory`) and that `resourceServerUrl` matches the URL the client connects to
 - For WorkOS, verify your AuthKit URL is current in your configuration
 
 ### Connection Timeouts
@@ -388,6 +403,14 @@ npm run build
 # Run in development mode
 npm run start
 ```
+
+### Tests
+
+```bash
+npm test
+```
+
+The tests use the Node.js built-in test runner (run through `tsx`). They start the server against a local mock authorization server that serves a JWKS and check the OAuth behaviour: audience binding, issuer and signature checks, `401` challenges and protected resource metadata.
 
 ### Code Style
 
