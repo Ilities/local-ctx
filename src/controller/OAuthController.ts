@@ -4,9 +4,10 @@ import { OAuthService } from '../service/OAuthService.js';
 export class OAuthController {
   constructor(private readonly oAuthService: OAuthService) {}
 
-  public getProtectedResourceHandler() {
+  /** Serves RFC 9728 metadata for an MCP endpoint, or the legacy root document when no endpoint is given. */
+  public getProtectedResourceHandler(endpoint?: string) {
     return (_req: Request, res: Response) => {
-      const metadata = this.oAuthService.getProtectedResourceMetadata();
+      const metadata = this.oAuthService.getProtectedResourceMetadata(endpoint);
       res.json(metadata);
     };
   }

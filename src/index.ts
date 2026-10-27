@@ -16,7 +16,8 @@ dotenv.config();
 
 interface OAuthConfig {
   authorizationServerUrl: string;
-  jwksPath: string;
+  jwksPath?: string;
+  resourceServerUrl?: string;
 }
 
 interface ConfigFile {
@@ -125,7 +126,11 @@ async function main() {
       cliCommands.length > 0 ? cliCommands : envConfig.commands || fileConfig.commands || [],
     port: resolvedPort,
     oauth: fileConfig.oauth
-      ? { ...fileConfig.oauth, resourceServerUrl: `http://localhost:${resolvedPort}` }
+      ? {
+          ...fileConfig.oauth,
+          resourceServerUrl:
+            fileConfig.oauth.resourceServerUrl ?? `http://localhost:${resolvedPort}`,
+        }
       : undefined,
   };
 
