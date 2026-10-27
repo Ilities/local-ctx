@@ -97,7 +97,8 @@ Specify a path with the `--config` option to a `config.json` file:
   "port": 8000,
   "oauth": {
     "authorizationServerUrl": "https://your-auth-server.example.com",
-    "jwksPath": "/optional-jwks-path"
+    "jwksPath": "/optional-jwks-path",
+    "resourceUrl": "https://your-public-host.example.com"
   }
 }
 ```
@@ -115,11 +116,15 @@ OAuth can be configured to secure your endpoints:
 
 - `authorizationServerUrl`: URL of the OAuth authorization server
 - `jwksPath`: Optional path to the JWKS endpoint (defaults to standard path which is `/oauth2/jwks`)
+- `resourceUrl`: Optional public URL of this resource server (the URL clients actually connect to, e.g. your `ngrok`/`Pinggy` URL). Defaults to `http://localhost:<port>`. Set this when exposing the server through a tunnel so that tokens are validated against the correct audience and the advertised metadata points at the public host.
 
-When OAuth is configured, the server will automatically:
+When OAuth is configured, the server follows the MCP authorization specification (revision 2025-06-18) for resource servers:
 
-- Expose OAuth discovery endpoints at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
-- Require valid JWT bearer tokens for all command endpoints
+- Each MCP endpoint is treated as its own OAuth resource with a canonical identifier of `<resourceUrl>/<name>` (for example `http://localhost:8000/memory`).
+- Access tokens are only accepted when their `aud` (audience) claim matches that endpoint's identifier. A token issued by the same authorization server for a different resource is rejected with `401`.
+- RFC 9728 protected resource metadata is served for every exposed MCP endpoint at `/.well-known/oauth-protected-resource/<name>` (and at the root `/.well-known/oauth-protected-resource`).
+- A `401` response includes a `WWW-Authenticate: Bearer ...` header whose `resource_metadata` parameter points at the metadata URL for the endpoint that was requested.
+- The authorization server metadata is proxied at `/.well-known/oauth-authorization-server`.
 
 ## Auth Setup
 
@@ -399,6 +404,14 @@ npm run format:check
 
 # Format code
 npm run format
+```
+
+### Running Tests
+
+Tests use the built-in Node.js test runner via `tsx`:
+
+```bash
+npm test
 ```
 
 ### Pull Request Process

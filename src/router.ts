@@ -66,8 +66,8 @@ export class LocalContextServer {
       // OAuth endpoints
       this.app
         .route('/.well-known/oauth-protected-resource')
-        .get(this.oAuthController.getProtectedResourceHandler())
-        .options(this.oAuthController.getProtectedResourceHandler());
+        .get(this.oAuthController.getProtectedResourceHandler(''))
+        .options(this.oAuthController.getProtectedResourceHandler(''));
       this.app
         .route('/.well-known/oauth-authorization-server')
         .get(this.oAuthController.getAuthorizationServerHandler())
@@ -79,12 +79,20 @@ export class LocalContextServer {
     }
 
     for (const [name, controller] of this.localServerRegistry.getLocalServers()) {
+      // RFC 9728 path-specific protected resource metadata for this MCP endpoint.
+      if (this.oAuthController) {
+        this.app
+          .route(`/.well-known/oauth-protected-resource/${name}`)
+          .get(this.oAuthController.getProtectedResourceHandler(name))
+          .options(this.oAuthController.getProtectedResourceHandler(name));
+      }
+
       // POST endpoint for MCP requests
       this.app
         .post(
           `/${name}`,
           this.oAuthController
-            ? this.oAuthService.getJwtBearerTokenMiddleware()
+            ? this.oAuthService.getJwtBearerTokenMiddleware(name)
             : passThroughMiddleware,
           (req, res) => controller.handleMCPRequest(req, res)
         )
