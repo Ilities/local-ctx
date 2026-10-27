@@ -1,6 +1,6 @@
 import express from 'express';
 import { createRootLogger, passThroughMiddleware } from './util';
-import { Logger } from 'pino';
+import type { Logger } from 'pino';
 import { LocalServerRegistry } from './service/LocalServerRegistry';
 import { OAuthController } from './controller/OAuthController';
 import { OAuthService } from './service/OAuthService';
@@ -15,6 +15,7 @@ export interface OAuthConfig {
   authorizationServerUrl: string;
   resourceServerUrl: string;
   jwksPath?: string;
+  audience?: string;
 }
 
 export interface LocalServerConfig {
@@ -79,17 +80,26 @@ export class LocalContextServer {
     }
 
     for (const [name, controller] of this.localServerRegistry.getLocalServers()) {
+      const endpointPath = `/${name}`;
+      const resourceUrl = this.oAuthService.getResourceUrlForEndpoint(endpointPath);
+
+      if (this.oAuthController) {
+        const metadataHandler = this.oAuthController.getProtectedResourceHandler(resourceUrl);
+        const metadataPath = `${endpointPath}/.well-known/oauth-protected-resource`;
+        this.app.route(metadataPath).get(metadataHandler).options(metadataHandler);
+      }
+
       // POST endpoint for MCP requests
       this.app
         .post(
-          `/${name}`,
+          endpointPath,
           this.oAuthController
-            ? this.oAuthService.getJwtBearerTokenMiddleware()
+            ? this.oAuthService.getJwtBearerTokenMiddleware(resourceUrl)
             : passThroughMiddleware,
           (req, res) => controller.handleMCPRequest(req, res)
         )
-        .get(`/${name}`, (req, res) => controller.handleUnsupportedMethod(req, res))
-        .delete(`/${name}`, (req, res) => controller.handleUnsupportedMethod(req, res));
+        .get(endpointPath, (req, res) => controller.handleUnsupportedMethod(req, res))
+        .delete(endpointPath, (req, res) => controller.handleUnsupportedMethod(req, res));
       this.logger.info(`Configured routes for command at path: ${name}`);
     }
   }

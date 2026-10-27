@@ -97,7 +97,8 @@ Specify a path with the `--config` option to a `config.json` file:
   "port": 8000,
   "oauth": {
     "authorizationServerUrl": "https://your-auth-server.example.com",
-    "jwksPath": "/optional-jwks-path"
+    "jwksPath": "/optional-jwks-path",
+    "audience": "https://your-public-host.example.com/memory"
   }
 }
 ```
@@ -115,10 +116,11 @@ OAuth can be configured to secure your endpoints:
 
 - `authorizationServerUrl`: URL of the OAuth authorization server
 - `jwksPath`: Optional path to the JWKS endpoint (defaults to standard path which is `/oauth2/jwks`)
+- `audience`: Optional JWT audience (`aud`) claim expected in access tokens. By default, each endpoint requires its own full resource URL, including the endpoint path (for example, `https://your-public-host.example.com/memory`). Configure this only if your authorization server issues tokens with a different audience value.
 
 When OAuth is configured, the server will automatically:
 
-- Expose OAuth discovery endpoints at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
+- Expose OAuth protected-resource metadata for each endpoint at `/{endpoint}/.well-known/oauth-protected-resource` (for example, `/memory/.well-known/oauth-protected-resource`), plus authorization-server metadata at `/.well-known/oauth-authorization-server`
 - Require valid JWT bearer tokens for all command endpoints
 
 ## Auth Setup

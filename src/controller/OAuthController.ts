@@ -1,12 +1,12 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { OAuthService } from '../service/OAuthService.js';
 
 export class OAuthController {
   constructor(private readonly oAuthService: OAuthService) {}
 
-  public getProtectedResourceHandler() {
+  public getProtectedResourceHandler(resourceUrl?: string) {
     return (_req: Request, res: Response) => {
-      const metadata = this.oAuthService.getProtectedResourceMetadata();
+      const metadata = this.oAuthService.getProtectedResourceMetadata(resourceUrl);
       res.json(metadata);
     };
   }
