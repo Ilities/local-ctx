@@ -118,8 +118,12 @@ OAuth can be configured to secure your endpoints:
 
 When OAuth is configured, the server will automatically:
 
-- Expose OAuth discovery endpoints at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
+- Expose per-endpoint OAuth Protected Resource Metadata ([RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728)) at `/.well-known/oauth-protected-resource/{name}` for each configured command, as well as Authorization Server Metadata at `/.well-known/oauth-authorization-server`
+- Return a `WWW-Authenticate` header on 401 responses that points clients to the endpoint-specific resource metadata URL
 - Require valid JWT bearer tokens for all command endpoints
+- Validate that each token was issued for the specific endpoint it is presented to (audience check via [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707.html) resource indicators) -- a token issued for `/memory` will be rejected at `/filesystem`
+
+Each MCP endpoint is treated as a separate OAuth protected resource with its own resource identifier (e.g. `http://localhost:8000/memory`). Clients discover the authorization server by fetching the endpoint's protected resource metadata.
 
 ## Auth Setup
 
@@ -387,6 +391,18 @@ npm run build
 
 # Run in development mode
 npm run start
+```
+
+### Running Tests
+
+The project uses [Vitest](https://vitest.dev/) for testing:
+
+```bash
+# Run tests once
+npm test
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
 ### Code Style
