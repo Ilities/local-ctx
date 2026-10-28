@@ -4,9 +4,13 @@ import { OAuthService } from '../service/OAuthService.js';
 export class OAuthController {
   constructor(private readonly oAuthService: OAuthService) {}
 
-  public getProtectedResourceHandler() {
+  /**
+   * RFC 9728 protected resource metadata handler for the MCP endpoint `/<name>`.
+   * The URL path for this is `/.well-known/oauth-protected-resource/<name>`.
+   */
+  public getProtectedResourceHandler(name: string) {
     return (_req: Request, res: Response) => {
-      const metadata = this.oAuthService.getProtectedResourceMetadata();
+      const metadata = this.oAuthService.getProtectedResourceMetadata(name);
       res.json(metadata);
     };
   }
@@ -16,7 +20,7 @@ export class OAuthController {
       try {
         const metadata = await this.oAuthService.getAuthorizationServerMetadata();
         res.json(metadata);
-      } catch (error) {
+      } catch {
         res.status(500).json({ error: 'Failed to fetch authorization server metadata' });
       }
     };
