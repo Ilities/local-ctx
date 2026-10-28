@@ -63,11 +63,15 @@ export class LocalContextServer {
 
   private configureRoutes(): void {
     if (this.oAuthController) {
-      // OAuth endpoints
+      // Per-endpoint protected resource metadata (RFC 9728).
+      // The well-known URL for a resource with a path component is formed
+      // by inserting /.well-known/oauth-protected-resource before the path.
       this.app
-        .route('/.well-known/oauth-protected-resource')
+        .route('/.well-known/oauth-protected-resource/:endpointName')
         .get(this.oAuthController.getProtectedResourceHandler())
         .options(this.oAuthController.getProtectedResourceHandler());
+
+      // Authorization server metadata proxy (unchanged).
       this.app
         .route('/.well-known/oauth-authorization-server')
         .get(this.oAuthController.getAuthorizationServerHandler())
@@ -84,7 +88,7 @@ export class LocalContextServer {
         .post(
           `/${name}`,
           this.oAuthController
-            ? this.oAuthService.getJwtBearerTokenMiddleware()
+            ? this.oAuthService.getJwtBearerTokenMiddleware(name)
             : passThroughMiddleware,
           (req, res) => controller.handleMCPRequest(req, res)
         )
@@ -92,6 +96,13 @@ export class LocalContextServer {
         .delete(`/${name}`, (req, res) => controller.handleUnsupportedMethod(req, res));
       this.logger.info(`Configured routes for command at path: ${name}`);
     }
+  }
+
+  /**
+   * Expose the Express application for testing without calling listen().
+   */
+  public getApp(): express.Application {
+    return this.app;
   }
 
   public start(): void {
