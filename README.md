@@ -74,11 +74,14 @@ Configuration is loaded in the following order of precedence (highest to lowest)
 - `--port, -p`: Port number for the server (default: 8000)
 - `--commands`: JSON string of commands configuration
 - `--authorizationServerUrl`: URL for the OAuth authorization server
+- `--resourceServerUrl`: Public base URL at which this process is reachable by MCP clients (e.g. `https://foo.ngrok-free.app`). Used to build RFC 9728 resource identifiers. Defaults to `http://localhost:<port>`.
 
 ### Environment Variables
 
 - `PORT`: Port number for the server
 - `COMMANDS`: JSON string array of command configurations
+- `AUTHORIZATION_SERVER_URL`: URL for the OAuth authorization server
+- `RESOURCE_SERVER_URL`: Public base URL at which this process is reachable (see `--resourceServerUrl` above)
 
 ### Configuration File Format
 
@@ -97,7 +100,8 @@ Specify a path with the `--config` option to a `config.json` file:
   "port": 8000,
   "oauth": {
     "authorizationServerUrl": "https://your-auth-server.example.com",
-    "jwksPath": "/optional-jwks-path"
+    "jwksPath": "/optional-jwks-path",
+    "resourceServerUrl": "https://your-public-host.example.com"
   }
 }
 ```
@@ -115,11 +119,15 @@ OAuth can be configured to secure your endpoints:
 
 - `authorizationServerUrl`: URL of the OAuth authorization server
 - `jwksPath`: Optional path to the JWKS endpoint (defaults to standard path which is `/oauth2/jwks`)
+- `resourceServerUrl`: Optional public base URL at which this process is reachable by MCP clients. Used as the base of every RFC 8707 resource identifier and included in the RFC 9728 protected resource metadata and `WWW-Authenticate` headers. Defaults to `http://localhost:<port>`. **Set this to the externally reachable URL (for example your ngrok/Pinggy hostname) whenever this server is exposed through a tunnel**, otherwise clients will see resource identifiers that don't match the URL they are actually calling, and OAuth will fail.
 
-When OAuth is configured, the server will automatically:
+When OAuth is configured the server behaves as an MCP OAuth 2.1 protected resource per the MCP authorization specification (revision 2025-06-18):
 
-- Expose OAuth discovery endpoints at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
-- Require valid JWT bearer tokens for all command endpoints
+- Each exposed command endpoint is treated as its own OAuth protected resource. Its canonical resource identifier is `<resourceServerUrl>/<name>` (RFC 8707).
+- RFC 9728 protected resource metadata is served at `/.well-known/oauth-protected-resource/<name>` for each exposed endpoint. The top-level `/.well-known/oauth-protected-resource` document is still served (pointing at the first registered endpoint) for backwards compatibility.
+- The authorization server metadata is proxied at `/.well-known/oauth-authorization-server`.
+- 401 responses include a `WWW-Authenticate: Bearer` header whose `resource_metadata` parameter points to the specific `/.well-known/oauth-protected-resource/<name>` document for the endpoint the client just called, so clients can discover the correct authorization server for each resource.
+- Access tokens are only accepted when the `aud` (audience) claim contains the resource identifier for the endpoint being called. A token from the same authorization server that was issued for a different resource is rejected with 401.
 
 ## Auth Setup
 
@@ -221,6 +229,8 @@ If clients receive 401 Unauthorized errors:
 - Ensure the OAuth server is running and reachable from both your machine and the tunneling service
 - Check that the client is sending a valid, non-expired JWT token
 - For WorkOS, verify your AuthKit URL is current in your configuration
+- Check the `WWW-Authenticate` header on the 401 response. The `resource_metadata` parameter points at the per-resource `.well-known/oauth-protected-resource/<name>` document that tells the client which audience to request a token for.
+- When you're exposing this server through a tunnel (ngrok, Pinggy, etc.), set `oauth.resourceServerUrl` (or the `--resourceServerUrl` CLI flag / `RESOURCE_SERVER_URL` env var) to the public URL. Tokens whose `aud` claim does not match `<resourceServerUrl>/<name>` are rejected.
 
 ### Connection Timeouts
 
@@ -330,10 +340,12 @@ const config = {
 
 ## Environment Variable Reference
 
-| Variable   | Description                                 | Default |
-| ---------- | ------------------------------------------- | ------- |
-| `PORT`     | Port number for the HTTP server             | `8000`  |
-| `COMMANDS` | JSON string array of command configurations | (none)  |
+| Variable                   | Description                                                                 | Default                   |
+| -------------------------- | --------------------------------------------------------------------------- | ------------------------- |
+| `PORT`                     | Port number for the HTTP server                                             | `8000`                    |
+| `COMMANDS`                 | JSON string array of command configurations                                 | (none)                    |
+| `AUTHORIZATION_SERVER_URL` | URL for the OAuth authorization server                                      | (none)                    |
+| `RESOURCE_SERVER_URL`      | Public base URL at which this process is reachable by MCP clients           | `http://localhost:<port>` |
 
 ## Security Considerations
 
@@ -399,6 +411,15 @@ npm run format:check
 
 # Format code
 npm run format
+```
+
+### Tests
+
+The test suite uses Node's built-in test runner via `tsx`. Tests live in the top-level `tests/` directory.
+
+```bash
+# Run all tests
+npm test
 ```
 
 ### Pull Request Process

@@ -12,8 +12,9 @@
   "scripts": {
     "build": "node esbuild.js",
     "start": "tsx src/index -c config.json",
-    "format": "prettier --write \"src/**/*.{ts,js}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,js}\""
+    "test": "LOG_LEVEL=silent tsx --test tests/**/*.test.ts",
+    "format": "prettier --write \"{src,tests}/**/*.{ts,js}\"",
+    "format:check": "prettier --check \"{src,tests}/**/*.{ts,js}\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

@@ -16,7 +16,8 @@ dotenv.config();
 
 interface OAuthConfig {
   authorizationServerUrl: string;
-  jwksPath: string;
+  jwksPath?: string;
+  resourceServerUrl?: string;
 }
 
 interface ConfigFile {
@@ -98,7 +99,12 @@ async function main() {
     })
     .option('authorizationServerUrl', {
       type: 'string',
-      description: 'JSON string of commands configuration',
+      description: 'URL of the OAuth authorization server',
+    })
+    .option('resourceServerUrl', {
+      type: 'string',
+      description:
+        'Public base URL at which this process is reachable by MCP clients (e.g. https://foo.ngrok.app). Used to build RFC 9728 resource identifiers.',
     })
     .help()
     .parseAsync();
@@ -120,13 +126,32 @@ async function main() {
 
   // Merge configurations with CLI args taking precedence
   const resolvedPort = argv.port || envConfig.port || fileConfig.port || 8000;
+
+  // Allow authorization server URL to come from CLI, env, or file.
+  const authorizationServerUrl =
+    argv.authorizationServerUrl ||
+    process.env['AUTHORIZATION_SERVER_URL'] ||
+    fileConfig.oauth?.authorizationServerUrl;
+
+  const resourceServerUrl =
+    argv.resourceServerUrl ||
+    process.env['RESOURCE_SERVER_URL'] ||
+    fileConfig.oauth?.resourceServerUrl ||
+    `http://localhost:${resolvedPort}`;
+
+  const oauth = authorizationServerUrl
+    ? {
+        authorizationServerUrl,
+        ...(fileConfig.oauth?.jwksPath ? { jwksPath: fileConfig.oauth.jwksPath } : {}),
+        resourceServerUrl,
+      }
+    : undefined;
+
   const finalConfig: LocalServerConfig = {
     commands:
       cliCommands.length > 0 ? cliCommands : envConfig.commands || fileConfig.commands || [],
     port: resolvedPort,
-    oauth: fileConfig.oauth
-      ? { ...fileConfig.oauth, resourceServerUrl: `http://localhost:${resolvedPort}` }
-      : undefined,
+    oauth,
   };
 
   console.log(finalConfig);

@@ -8,11 +8,15 @@ import { OAuthService } from './service/OAuthService';
 export interface CommandConfig {
   name: string;
   command: string;
-  path: string;
 }
 
 export interface OAuthConfig {
   authorizationServerUrl: string;
+  /**
+   * Public base URL at which this process is reachable by MCP clients. Used as
+   * the base of every resource identifier and in the `WWW-Authenticate` and PRM
+   * documents. Defaults to `http://localhost:<port>` when not provided.
+   */
   resourceServerUrl: string;
   jwksPath?: string;
 }
@@ -51,10 +55,18 @@ export class LocalContextServer {
     this.configureRoutes();
   }
 
+  public getApp(): express.Application {
+    return this.app;
+  }
+
   private configureMiddleware(): void {
     this.app.use((_req, res, next) => {
       res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+      );
+      res.header('Access-Control-Expose-Headers', 'WWW-Authenticate');
       next();
     });
 
@@ -63,15 +75,35 @@ export class LocalContextServer {
 
   private configureRoutes(): void {
     if (this.oAuthController) {
-      // OAuth endpoints
-      this.app
-        .route('/.well-known/oauth-protected-resource')
-        .get(this.oAuthController.getProtectedResourceHandler())
-        .options(this.oAuthController.getProtectedResourceHandler());
+      // OAuth authorization server metadata (proxied from the configured AS)
       this.app
         .route('/.well-known/oauth-authorization-server')
         .get(this.oAuthController.getAuthorizationServerHandler())
         .options(this.oAuthController.getAuthorizationServerHandler());
+
+      // Per-resource RFC 9728 protected resource metadata documents. Each
+      // exposed endpoint `/<name>` has its own metadata document at
+      // `/.well-known/oauth-protected-resource/<name>`.
+      for (const [name] of this.localServerRegistry.getLocalServers()) {
+        const prmHandler = this.oAuthController.getProtectedResourceHandler(name);
+        this.app
+          .route(`/.well-known/oauth-protected-resource/${name}`)
+          .get(prmHandler)
+          .options(prmHandler);
+      }
+
+      // Backwards-compatible top-level PRM: default to the first registered
+      // resource so existing clients that fetch the bare well-known document
+      // keep working. Clients that follow the WWW-Authenticate
+      // `resource_metadata` link get the correct per-resource document.
+      const firstName = this.localServerRegistry.getLocalServers().keys().next().value;
+      if (firstName) {
+        const firstHandler = this.oAuthController.getProtectedResourceHandler(firstName);
+        this.app
+          .route('/.well-known/oauth-protected-resource')
+          .get(firstHandler)
+          .options(firstHandler);
+      }
     } else {
       this.logger.warn(
         'OAuth is not configured. Exposed endpoints will be insecure. Please configure OAuth to enable OAuth support.'
@@ -84,7 +116,7 @@ export class LocalContextServer {
         .post(
           `/${name}`,
           this.oAuthController
-            ? this.oAuthService.getJwtBearerTokenMiddleware()
+            ? this.oAuthService.getJwtBearerTokenMiddleware(name)
             : passThroughMiddleware,
           (req, res) => controller.handleMCPRequest(req, res)
         )
